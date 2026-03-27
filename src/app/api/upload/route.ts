@@ -7,6 +7,16 @@ import { parseScriptFile } from "@/lib/parser";
 
 export const runtime = "nodejs";
 
+// mammoth.jsがNode.js環境で必要とするDOMMatrixポリフィル
+if (typeof globalThis.DOMMatrix === "undefined") {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).DOMMatrix = class DOMMatrix {
+    constructor() { return this; }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    static fromMatrix() { return new (globalThis as any).DOMMatrix(); }
+  };
+}
+
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
