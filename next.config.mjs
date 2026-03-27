@@ -7,7 +7,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   experimental: {
-    serverComponentsExternalPackages: ["pdf-parse", "kuromoji", "mammoth"],
+    serverComponentsExternalPackages: ["kuromoji", "mammoth"],
   },
   async headers() {
     return [

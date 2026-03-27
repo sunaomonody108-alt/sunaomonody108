@@ -1,8 +1,8 @@
 export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
-  // eval('require') prevents webpack from bundling/analyzing pdf-parse at build time
+  // Dynamic import lets webpack bundle pdf-parse and include it in the deployment
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mod = eval("require")("pdf-parse") as any;
-  const pdfParse = typeof mod === "function" ? mod : (mod.default ?? mod);
+  const mod = await import("pdf-parse") as any;
+  const pdfParse = typeof mod.default === "function" ? mod.default : mod;
   const data = await pdfParse(buffer);
   return data.text;
 }
