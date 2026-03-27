@@ -25,9 +25,9 @@ function normalizeText(text: string): string {
     );
 
   // PDFテキスト抽出で改行が消える場合の対処:
-  // キャラ「セリフ」のパターンを行頭として改行を挿入
-  // 例: "松太「今日も」似蔵「居続けじゃき」" → 各セリフを別行に
-  result = result.replace(/([^\n])([^\s　「『]{1,10}「)/g, "$1\n$2");
+  // 「セリフ」の終わり（」）の直後に次のキャラ名+「が来る場合のみ改行を挿入
+  // 例: "松太「今日も」似蔵「居続けじゃき」" → 改行は」の直後にのみ入れる
+  result = result.replace(/」([^\s　「』\n]{1,8}(?=「))/g, "」\n$1");
 
   // S数字）シーン見出しの前にも改行を挿入
   result = result.replace(/([^\n])(S\s*[0-9]+[）)）])/g, "$1\n$2");
@@ -111,10 +111,14 @@ export function parseJapaneseScreenplay(rawText: string): ParsedScript {
     classified.push({ type: "STAGE_DIRECTION", raw: line });
   }
 
-  // 2回以上登場する名前を登場人物として確定
+  // 2回以上登場し、かつ明らかに役名でないものを除外して登場人物として確定
   const confirmedCharacters = new Set<string>();
+  const invalidNamePattern = /[0-9一二三四五六七八九十百千万年月日」、。！？\s×＋＝]/;
   for (const [name, count] of nameCounts) {
-    if (count >= 2) confirmedCharacters.add(name);
+    if (count < 2) continue;
+    if (invalidNamePattern.test(name)) continue;
+    if (name.length > 8) continue; // 8文字超は役名でない可能性が高い
+    confirmedCharacters.add(name);
   }
 
   // カラーマップ
