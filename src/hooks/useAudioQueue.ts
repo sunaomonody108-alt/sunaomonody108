@@ -55,7 +55,14 @@ export function useAudioQueue(
       });
       if (!res.ok) return null;
       const data = await res.json();
-      return data.url as string;
+      if (data.url) return data.url as string;
+      if (data.audioBase64) {
+        // Create a blob URL from the base64 audio for client-side playback
+        const bytes = Uint8Array.from(atob(data.audioBase64), (c) => c.charCodeAt(0));
+        const blob = new Blob([bytes], { type: "audio/mpeg" });
+        return URL.createObjectURL(blob);
+      }
+      return null;
     } catch {
       return null;
     }

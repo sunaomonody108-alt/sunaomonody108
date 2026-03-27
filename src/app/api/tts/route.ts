@@ -49,17 +49,20 @@ export async function POST(req: NextRequest) {
     pitch: data.pitch,
   });
 
-  const audioUrl = await saveAudio(data.lineId, result.audioBase64);
-
-  // Update line with audio URL
-  if (line) {
-    await db.line.update({
-      where: { id: data.lineId },
-      data: { audioUrl },
-    });
+  // If Vercel Blob is configured, persist the audio and return a stable URL
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const audioUrl = await saveAudio(data.lineId, result.audioBase64);
+    if (line) {
+      await db.line.update({
+        where: { id: data.lineId },
+        data: { audioUrl },
+      });
+    }
+    return NextResponse.json({ url: audioUrl });
   }
 
-  return NextResponse.json({ url: audioUrl });
+  // No Blob storage: return base64 for client-side playback (avoids read-only filesystem error)
+  return NextResponse.json({ audioBase64: result.audioBase64 });
 }
 
 // List available voices

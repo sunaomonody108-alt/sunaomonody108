@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { GOOGLE_JP_VOICES } from "@/lib/tts";
 
 const CreateScriptSchema = z.object({
   title: z.string().min(1),
@@ -74,13 +75,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Batch create characters, then fetch to get IDs
+    // Batch create characters with default voices, then fetch to get IDs
     await tx.character.createMany({
-      data: data.characters.map((char) => ({
+      data: data.characters.map((char, idx) => ({
         scriptId: s.id,
         name: char.name,
         lineCount: char.lineCount,
         color: char.color,
+        voiceId: GOOGLE_JP_VOICES[idx % GOOGLE_JP_VOICES.length].id,
       })),
     });
     const createdChars = await tx.character.findMany({
