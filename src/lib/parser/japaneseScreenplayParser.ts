@@ -17,12 +17,22 @@ const SPACE_DIALOGUE_PATTERN =
   /^([^\s　（(「『【〔\[]{1,10})[　\s]+(?:[（(（]([^）)）]*)[）)）])?\s*(.+)$/;
 
 function normalizeText(text: string): string {
-  return text
+  let result = text
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
     .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (c) =>
       String.fromCharCode(c.charCodeAt(0) - 0xfee0)
     );
+
+  // PDFテキスト抽出で改行が消える場合の対処:
+  // キャラ「セリフ」のパターンを行頭として改行を挿入
+  // 例: "松太「今日も」似蔵「居続けじゃき」" → 各セリフを別行に
+  result = result.replace(/([^\n])([^\s　「『]{1,10}「)/g, "$1\n$2");
+
+  // S数字）シーン見出しの前にも改行を挿入
+  result = result.replace(/([^\n])(S\s*[0-9]+[）)）])/g, "$1\n$2");
+
+  return result;
 }
 
 function extractSceneInfo(heading: string): { title: string; location: string | null } {
