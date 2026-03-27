@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const data = CreateScriptSchema.parse(body);
 
-  // Create script with all nested data in a transaction
+  // Create script with all nested data using batch inserts for speed
   const script = await db.$transaction(async (tx) => {
     const s = await tx.script.create({
       data: {
@@ -74,55 +74,55 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Create characters
-    const characterMap = new Map<string, string>(); // name → id
-    for (const char of data.characters) {
-      const c = await tx.character.create({
-        data: {
-          scriptId: s.id,
-          name: char.name,
-          lineCount: char.lineCount,
-          color: char.color,
-        },
-      });
-      characterMap.set(char.name, c.id);
-    }
+    // Batch create characters, then fetch to get IDs
+    await tx.character.createMany({
+      data: data.characters.map((char) => ({
+        scriptId: s.id,
+        name: char.name,
+        lineCount: char.lineCount,
+        color: char.color,
+      })),
+    });
+    const createdChars = await tx.character.findMany({
+      where: { scriptId: s.id },
+      select: { id: true, name: true },
+    });
+    const characterMap = new Map(createdChars.map((c) => [c.name, c.id]));
 
-    // Create scenes and lines
-    for (let si = 0; si < data.scenes.length; si++) {
-      const scene = data.scenes[si];
-      const sc = await tx.scene.create({
-        data: {
-          scriptId: s.id,
-          sceneNumber: scene.sceneNumber,
-          title: scene.title,
-          location: scene.location,
-          orderIndex: si,
-        },
-      });
+    // Batch create scenes, then fetch IDs by sceneNumber
+    await tx.scene.createMany({
+      data: data.scenes.map((scene, si) => ({
+        scriptId: s.id,
+        sceneNumber: scene.sceneNumber,
+        title: scene.title,
+        location: scene.location,
+        orderIndex: si,
+      })),
+    });
+    const createdScenes = await tx.scene.findMany({
+      where: { scriptId: s.id },
+      select: { id: true, sceneNumber: true },
+    });
+    const sceneIdByNumber = new Map(createdScenes.map((sc) => [sc.sceneNumber, sc.id]));
 
-      for (const line of scene.lines) {
-        const characterId = line.characterName
-          ? (characterMap.get(line.characterName) ?? null)
-          : null;
-
-        await tx.line.create({
-          data: {
-            scriptId: s.id,
-            sceneId: sc.id,
-            characterId,
-            orderIndex: line.orderIndex,
-            lineType: line.lineType,
-            rawText: line.rawText,
-            dialogue: line.dialogue,
-            stageDirection: line.stageDirection,
-          },
-        });
-      }
-    }
+    // Batch create all lines at once
+    const allLines = data.scenes.flatMap((scene) => {
+      const sceneId = sceneIdByNumber.get(scene.sceneNumber)!;
+      return scene.lines.map((line) => ({
+        scriptId: s.id,
+        sceneId,
+        characterId: line.characterName ? (characterMap.get(line.characterName) ?? null) : null,
+        orderIndex: line.orderIndex,
+        lineType: line.lineType,
+        rawText: line.rawText,
+        dialogue: line.dialogue,
+        stageDirection: line.stageDirection,
+      }));
+    });
+    await tx.line.createMany({ data: allLines });
 
     return s;
-  });
+  }, { timeout: 25000 });
 
   return NextResponse.json({ id: script.id }, { status: 201 });
 }
