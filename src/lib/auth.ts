@@ -4,8 +4,16 @@ import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
 
+function getAdapter() {
+  try {
+    return PrismaAdapter(db) as NextAuthOptions["adapter"];
+  } catch {
+    return undefined;
+  }
+}
+
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(db) as NextAuthOptions["adapter"],
+  adapter: getAdapter(),
   providers: [
     GithubProvider({
       clientId: process.env.GITHUB_CLIENT_ID ?? "",
@@ -27,9 +35,7 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  pages: {
-    signIn: "/signin",
-  },
+  pages: {},
 };
 
 declare module "next-auth" {
