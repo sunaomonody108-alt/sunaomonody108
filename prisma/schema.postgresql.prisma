@@ -1,0 +1,199 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Auth (NextAuth) ───────────────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Users ─────────────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  scripts       Script[]
+  practiceLogs  PracticeSession[]
+  ttsPreference TtsPreference?
+}
+
+// ─── TTS Settings ──────────────────────────────────────────────────────────────
+
+model TtsPreference {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  provider  String   @default("GOOGLE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Scripts ───────────────────────────────────────────────────────────────────
+
+model Script {
+  id           String   @id @default(cuid())
+  userId       String
+  title        String
+  originalFile String?
+  rawText      String
+  language     String   @default("ja")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  characters  Character[]
+  scenes      Scene[]
+  practiceLog PracticeSession[]
+}
+
+// ─── Characters ────────────────────────────────────────────────────────────────
+
+model Character {
+  id          String  @id @default(cuid())
+  scriptId    String
+  name        String
+  displayName String?
+  voiceId     String?
+  voiceSpeed  Float   @default(1.0)
+  voicePitch  Float   @default(0.0)
+  color       String?
+  lineCount   Int     @default(0)
+
+  script       Script        @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+  lines        Line[]
+  emotionNotes EmotionNote[]
+
+  @@unique([scriptId, name])
+}
+
+// ─── Scenes ────────────────────────────────────────────────────────────────────
+
+model Scene {
+  id          String  @id @default(cuid())
+  scriptId    String
+  sceneNumber Int
+  title       String?
+  location    String?
+  description String?
+  orderIndex  Int
+
+  script      Script            @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+  lines       Line[]
+  practiceLog PracticeSession[]
+}
+
+// ─── Lines ─────────────────────────────────────────────────────────────────────
+
+model Line {
+  id              String   @id @default(cuid())
+  scriptId        String
+  sceneId         String
+  characterId     String?
+  orderIndex      Int
+  lineType        String
+  rawText         String
+  dialogue        String?
+  stageDirection  String?
+  furigana        String?
+  audioUrl        String?
+  audioDurationMs Int?
+  createdAt       DateTime @default(now())
+
+  scene       Scene      @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  character   Character? @relation(fields: [characterId], references: [id])
+  emotionNote EmotionNote?
+
+  @@index([sceneId, orderIndex])
+  @@index([characterId])
+}
+
+// ─── Emotion Analysis ──────────────────────────────────────────────────────────
+
+model EmotionNote {
+  id           String   @id @default(cuid())
+  lineId       String   @unique
+  characterId  String
+  emotion      String
+  intensity    Int
+  directorNote String
+  contextNote  String?
+  analyzedAt   DateTime @default(now())
+
+  line      Line      @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  character Character @relation(fields: [characterId], references: [id])
+}
+
+// ─── Practice Tracking ─────────────────────────────────────────────────────────
+
+model PracticeSession {
+  id              String   @id @default(cuid())
+  userId          String
+  scriptId        String
+  sceneId         String?
+  userCharacterId String?
+  mode            String   @default("USER_ROLE")
+  durationSeconds Int?
+  completedLines  Int      @default(0)
+  totalLines      Int      @default(0)
+  recordingUrl    String?
+  createdAt       DateTime @default(now())
+
+  user         User           @relation(fields: [userId], references: [id])
+  script       Script         @relation(fields: [scriptId], references: [id])
+  scene        Scene?         @relation(fields: [sceneId], references: [id])
+  lineProgress LineProgress[]
+}
+
+model LineProgress {
+  id                String   @id @default(cuid())
+  practiceSessionId String
+  lineId            String
+  status            String   @default("PENDING")
+  userRecordingUrl  String?
+  createdAt         DateTime @default(now())
+
+  practiceSession PracticeSession @relation(fields: [practiceSessionId], references: [id], onDelete: Cascade)
+}

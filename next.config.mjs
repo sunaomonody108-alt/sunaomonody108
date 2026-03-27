@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Needed for pdf-parse and kuromoji to work in API routes
-  experimental: { serverComponentsExternalPackages: ["pdf-parse", "kuromoji"] },
-  // Allow serving audio files
+  experimental: {
+    serverComponentsExternalPackages: ["pdf-parse", "kuromoji", "better-sqlite3"],
+  },
   async headers() {
     return [
       {

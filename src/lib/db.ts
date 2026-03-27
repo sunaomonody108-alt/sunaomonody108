@@ -1,14 +1,26 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import path from "path";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
 function createPrismaClient(): PrismaClient {
+  const provider = process.env.DATABASE_PROVIDER ?? "sqlite";
+
+  if (provider === "postgresql") {
+    // Production: standard PrismaClient with PostgreSQL connection URL
+    return new PrismaClient({
+      log: ["error"],
+    });
+  }
+
+  // Local development: SQLite with better-sqlite3 adapter
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { PrismaBetterSqlite3 } = require("@prisma/adapter-better-sqlite3");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const path = require("path") as typeof import("path");
+
   const rawUrl = process.env.DATABASE_URL ?? "file:./dev.db";
-  // Strip "file:" prefix and resolve to absolute path
   const dbRelative = rawUrl.replace(/^file:/, "");
   const dbPath = path.isAbsolute(dbRelative)
     ? dbRelative
