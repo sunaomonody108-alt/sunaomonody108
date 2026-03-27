@@ -7,18 +7,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   experimental: {
-    serverComponentsExternalPackages: ["pdf-parse", "kuromoji", "better-sqlite3", "@prisma/adapter-better-sqlite3"],
-  },
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      const externals = Array.isArray(config.externals) ? config.externals : [];
-      config.externals = [
-        ...externals,
-        "better-sqlite3",
-        "@prisma/adapter-better-sqlite3",
-      ];
-    }
-    return config;
+    serverComponentsExternalPackages: ["pdf-parse", "kuromoji"],
   },
   async headers() {
     return [
