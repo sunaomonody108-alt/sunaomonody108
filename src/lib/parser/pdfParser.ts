@@ -1,8 +1,7 @@
 export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
-  const pdfModule = await import("pdf-parse");
-  // pdf-parse exports differently depending on the bundler
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pdfParse = (pdfModule as any).default ?? pdfModule;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
+  const pdfParseModule = require("pdf-parse") as any;
+  const pdfParse = pdfParseModule.default ?? pdfParseModule;
   const data = await pdfParse(buffer);
   return data.text;
 }
