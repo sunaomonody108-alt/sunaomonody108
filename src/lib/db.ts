@@ -5,7 +5,13 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient(): PrismaClient {
-  const provider = process.env.DATABASE_PROVIDER ?? "sqlite";
+  // DATABASE_URLがpostgresql://で始まる場合、またはDATABASE_PROVIDERがpostgresqlの場合はPostgreSQLを使用
+  const dbUrl = process.env.DATABASE_URL ?? "";
+  const isPostgres =
+    process.env.DATABASE_PROVIDER === "postgresql" ||
+    dbUrl.startsWith("postgresql://") ||
+    dbUrl.startsWith("postgres://");
+  const provider = isPostgres ? "postgresql" : "sqlite";
 
   if (provider === "postgresql") {
     // Production: standard PrismaClient with PostgreSQL connection URL
