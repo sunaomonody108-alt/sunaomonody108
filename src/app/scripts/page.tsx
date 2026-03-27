@@ -12,7 +12,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
 
 export default async function ScriptsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions).catch(() => null);
   if (!session?.user) redirect("/api/auth/signin");
 
   const scripts = await db.script.findMany({

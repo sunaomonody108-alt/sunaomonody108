@@ -11,7 +11,7 @@ export default async function PracticeSessionPage({
 }: {
   params: { scriptId: string; sceneId: string };
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions).catch(() => null);
   if (!session?.user) redirect("/api/auth/signin");
 
   const script = await db.script.findFirst({

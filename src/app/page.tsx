@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { BookOpen, Mic, Brain, Play } from "lucide-react";
 
 export default async function HomePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions).catch(() => null);
 
   return (
     <div className="flex flex-col items-center gap-12 py-16">

@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { ScriptImportWizard } from "@/components/script/ScriptImportWizard";
 
 export default async function NewScriptPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions).catch(() => null);
   if (!session?.user) redirect("/api/auth/signin");
 
   return (
