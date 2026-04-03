@@ -58,6 +58,24 @@ model User {
   scripts       Script[]
   practiceLogs  PracticeSession[]
   ttsPreference TtsPreference?
+  profile       UserProfile?
+}
+
+// ─── User Profile ───────────────────────────────────────────────────────────────
+
+model UserProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  preferredName      String?
+  occupation         String?
+  birthdate          DateTime?
+  locationEstimate   String?
+  interests          String?
+  customInstructions String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ─── TTS Settings ──────────────────────────────────────────────────────────────
